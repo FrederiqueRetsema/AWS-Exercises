@@ -30,7 +30,7 @@ you have administrator privileges.
 3) Create a new key (PEM-format key), with for example the name EC2Key.pem . Please mind that the case of the characters ARE relevant within AWS. 
 4) Go to CloudFormation
 5) Create a new stack
-6) Use the template "ExerciseGoal.yaml"
+6) Use the template "ExerciseGoal.yml"
 7) Use all the default parameters (assuming that you created a PEM key with the name EC2Key)
 8) When the stack is created successfully, then go to the output tab of CloudFormation. You will see two IP addresses: one public IP address of the Bastion host, one private IP address of the server in the private network.
 9) Start a command prompt and go to the directory where your EC2Key.pem is downloaded (f.e. cd c:\Users\Frederique\Downloads)
@@ -110,7 +110,9 @@ amzn2extra-docker                                     | 3.0 kB  00:00:00
 No packages marked for update  
 [ec2-user@ip-10-0-10-211 ~]$  
   
-  
+
+Now try and to the exercises. Why doesn't it work and what should be changed to let it work?
+
 Possible issues
 ---------------
 
