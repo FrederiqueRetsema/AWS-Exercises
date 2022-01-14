@@ -1,0 +1,343 @@
+# ExerciseGoal.yaml
+# =================
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Exercise 3
+
+Parameters:
+  EC2KeyName:
+    Description: Key name for EC2 
+    Type: String
+    Default: EC2Key
+  EC2InstanceType:
+    Description: Instance type for EC2
+    Type: String
+    Default: t2.micro
+  AmazonLinux2AMI: 
+    Description: Amazon Linux AMI (don't change this parameter, it will resolve automatically to the latest AWS Linux AMI version 2)
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-ebs
+
+Resources:
+
+  # VPC
+  # ===
+  TestVpc:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: TestVpcExercise3
+
+  # Public Subnet AZa
+  # =================
+  PublicSubnetAZa:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Join ["", [!Ref "AWS::Region", "a"]]
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref TestVpc
+      Tags:
+        - Key: Name
+          Value: PublicSubnetAZa
+  PublicSubnetAZaRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetAZa
+
+  # Public Subnet AZb
+  # =================
+  PublicSubnetAZb:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Join ["", [!Ref "AWS::Region", "b"]]
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref TestVpc
+      Tags:
+        - Key: Name
+          Value: PublicSubnetAZb
+  PublicSubnetAZbRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetAZb
+
+  # Internet Gateway
+  # ================
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref TestVpc
+
+  # Private Subnet AZa
+  # ==================
+  PrivateSubnetAZa:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Join ["", [!Ref "AWS::Region", "a"]]
+      CidrBlock: 10.0.10.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref TestVpc
+      Tags:
+        - Key: Name
+          Value: PrivateSubnetAZa
+  PrivateSubnetAZaRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableAZa
+      SubnetId: !Ref PrivateSubnetAZa
+
+  # Private Subnet AZb
+  # ==================
+  PrivateSubnetAZb:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Join ["", [!Ref "AWS::Region", "b"]]
+      CidrBlock: 10.0.11.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref TestVpc
+      Tags:
+        - Key: Name
+          Value: PrivateSubnetAZb
+  PrivateSubnetAZbRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableAZb
+      SubnetId: !Ref PrivateSubnetAZb
+
+  # NACLs
+  # =====
+
+  NACLPublic:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      Tags:
+        - Key: Name
+          Value: NACLPublic
+      VpcId: !Ref TestVpc
+
+  NACLPublicIngress:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: False
+      RuleNumber: 100
+      RuleAction: allow
+      NetworkAclId: !Ref NACLPublic
+      PortRange: 
+        From: 0
+        To: 65535
+      Protocol: 6
+  NACLPublicEgress:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: True
+      RuleNumber: 100
+      RuleAction: allow
+      NetworkAclId: !Ref NACLPublic
+      PortRange: 
+        From: 0
+        To: 65535
+      Protocol: 6
+
+  SubnetNACLAssociationPublicSubnetAZa:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref NACLPublic
+      SubnetId: !Ref PublicSubnetAZa
+  SubnetNACLAssociationPublicSubnetAZb:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref NACLPublic
+      SubnetId: !Ref PublicSubnetAZb
+
+  NACLPrivate:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      Tags:
+        - Key: Name
+          Value: NACLPrivateAZa
+      VpcId: !Ref TestVpc
+  NACLPrivateIngress:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: False
+      RuleNumber: 100
+      RuleAction: allow
+      NetworkAclId: !Ref NACLPrivate
+      PortRange: 
+        From: 0
+        To: 65535
+      Protocol: 6
+  NACLPrivateEgress:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: True
+      RuleNumber: 100
+      RuleAction: allow
+      NetworkAclId: !Ref NACLPrivate
+      PortRange: 
+        From: 0
+        To: 65535
+      Protocol: 6
+
+  SubnetNACLAssociationPrivateSubnetAZa:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref NACLPrivate
+      SubnetId: !Ref PrivateSubnetAZa
+  SubnetNACLAssociationPrivateSubnetAZb:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref NACLPrivate
+      SubnetId: !Ref PrivateSubnetAZb
+
+  # Public Route Table
+  # ==================
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: PublicRouteTable
+      VpcId: !Ref TestVpc
+  PublicRouteInternet:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # NAT Gateways
+  # ============
+  EIPNATGatewayAZa:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NATGatewayAZa:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      ConnectivityType: public
+      AllocationId: !GetAtt EIPNATGatewayAZa.AllocationId
+      SubnetId: !Ref PublicSubnetAZa
+
+  EIPNATGatewayAZb:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NATGatewayAZb:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      ConnectivityType: public
+      AllocationId: !GetAtt EIPNATGatewayAZb.AllocationId
+      SubnetId: !Ref PublicSubnetAZb
+
+  # Private Route Tables
+  # ====================
+  PrivateRouteTableAZb:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTable AZb
+      VpcId: !Ref TestVpc
+  PrivateRouteTableAZaRouteInternetAZb:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableAZb
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGatewayAZb
+
+  # Security Group
+  # ==============
+  BastionHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: BastionHostSecurityGroup
+      GroupDescription: Securitygroup for Bastion Host
+      VpcId: !Ref TestVpc
+  BastionHostSecurityGroupIngressSSH:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BastionHostSecurityGroup
+      CidrIp: 0.0.0.0/0      
+      Description: SSH
+      FromPort: 22
+      ToPort: 22
+      IpProtocol: TCP
+  BastionHostSecurityGroupEgressSSH:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BastionHostSecurityGroup
+      Description: Outgoing SSH to private subnet
+      CidrIp: 10.0.0.0/0
+      FromPort: 22
+      ToPort: 22
+      IpProtocol: TCP
+
+  PrivateSubnetHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: PrivateSubnetHostSecurityGroup
+      GroupDescription: Securitygroup for Private Subnet Host
+      VpcId: !Ref TestVpc
+  PrivateSubnetHostSecurityGroupIngressSSH:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref PrivateSubnetHostSecurityGroup
+      CidrIp: 10.0.0.0/0      
+      Description: SSH
+      FromPort: 22
+      ToPort: 22
+      IpProtocol: TCP
+
+  # Bastion Host
+  # ============
+  EC2BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmazonLinux2AMI 
+      InstanceType: !Ref EC2InstanceType
+      KeyName: !Ref EC2KeyName
+      SubnetId: !Ref PublicSubnetAZa
+      Tags:
+        - Key: Name
+          Value: Bastion Host
+      SecurityGroupIds:
+        - !Ref BastionHostSecurityGroup
+
+  # Private subnet Host
+  # ===================
+  EC2PrivateSubnetHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmazonLinux2AMI 
+      InstanceType: !Ref EC2InstanceType
+      KeyName: !Ref EC2KeyName
+      SubnetId: !Ref PrivateSubnetAZa
+      Tags:
+        - Key: Name
+          Value: Private Subnet Host
+      SecurityGroupIds:
+        - !Ref PrivateSubnetHostSecurityGroup
+
+Outputs:
+  IPAddressBastionHost:
+    Description: IP Address of Bastion Host
+    Value: !GetAtt EC2BastionHost.PublicIp
+  IPAddressPrivateSubnetHost:
+    Description: IP Address of Private Subnet Host
+    Value: !GetAtt EC2PrivateSubnetHost.PrivateIp
