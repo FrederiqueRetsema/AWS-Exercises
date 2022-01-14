@@ -34,7 +34,7 @@ you have administrator privileges.
 7) Use all the default parameters (assuming that you created a PEM key with the name EC2Key)
 8) When the stack is created successfully, then go to the output tab of CloudFormation. You will see two IP addresses: one public IP address of the Bastion host, one private IP address of the server in the private network.
 9) Start a command prompt and go to the directory where your EC2Key.pem is downloaded (f.e. cd c:\Users\Frederique\Downloads)
-10) Use the ssh command to log on to the Bastion Host (in this example I'm using public IP address 1.2.3.4):
+10) Use the ssh command to log on to the Bastion Host (in this example I'm using public IP address 1.2.3.4, you can find the IP address in EC2 or in the output of the CloudFormation stack):
 
     `ssh -i EC2Key ec2-user@1.2.3.4`
 
